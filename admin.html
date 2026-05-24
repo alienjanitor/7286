@@ -162,6 +162,17 @@ input::placeholder,textarea::placeholder{opacity:.45;}
 }
 .cswatch.sel{border-color:#fff;transform:scale(1.15);}
 
+/* avatar image picker */
+.avatar-pick{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:6px;}
+.av-opt{
+  aspect-ratio:1;border-radius:50%;overflow:hidden;cursor:pointer;
+  border:3px solid transparent;transition:transform .15s,border-color .15s;
+  background:#333;
+}
+.av-opt img{width:100%;height:100%;object-fit:cover;display:block;}
+.av-opt.sel{border-color:#FFD700;transform:scale(1.08);}
+.av-opt:hover{border-color:rgba(255,255,255,.6);}
+
 /* ── PAYOUT ── */
 .payout-card{
   background:rgba(0,0,0,.25);border-radius:14px;padding:12px;margin-bottom:8px;
@@ -370,6 +381,14 @@ let selIcon = '✨';
 
 const ICONS = ['✨','🍽️','🧹','🧺','🗑️','🌿','🐕','🛁','🛏️','🪟','🚗','🍳','📦','🧴','💊','🪴','🔧','🪣','🧼','🥗','🌊','🏡','🐱','🐟','🧀','🎒','📚','🔑','🧊','💡','🎮','🛒'];
 const SWATCH_COLORS = ['#FF4E6A','#4ECAFF','#FF9A3C','#A855F7','#22C55E','#F59E0B','#E63946','#2A9D8F','#FF6B6B','#60A5FA','#FB923C','#C084FC'];
+
+const AVATAR_IMAGES = [
+  'avatars/IMG_2908.jpg','avatars/IMG_2909.jpg','avatars/IMG_2910.jpg',
+  'avatars/IMG_2911.jpg','avatars/IMG_2912.jpg','avatars/IMG_2913.jpg',
+  'avatars/IMG_2914.jpg','avatars/IMG_2915.jpg','avatars/IMG_2917.jpg',
+  'avatars/IMG_2918.jpg','avatars/IMG_2919.jpg','avatars/IMG_2920.jpg',
+  'avatars/IMG_7648.JPG'
+];
 
 // ═══════════════════════════════════════════════
 // INIT
@@ -665,6 +684,13 @@ function renderUsers(){
            style="background:${col}"
            onclick="setUserColor('${uid}','${col}',this)"></div>`).join('');
 
+    const avatarGrid = AVATAR_IMAGES.map(path=>`
+      <div class="av-opt${(u.imageUrl||'')=== path?' sel':''}"
+           onclick="setUserAvatar('${uid}','${path}',this)"
+           title="${path}">
+        <img src="${path}" alt="" loading="lazy">
+      </div>`).join('');
+
     div.innerHTML=`
       <div class="u-av" id="u-av-${uid}" style="background:${u.color||'#888'}">
         ${u.imageUrl?`<img src="${u.imageUrl}" alt="" onerror="this.style.display='none'">`:`${u.name[0]}`}
@@ -677,8 +703,12 @@ function renderUsers(){
             <input type="text" id="un-${uid}" value="${u.name}" onchange="updateUserName('${uid}',this.value)">
           </div>
           <div class="form-group" style="margin-bottom:8px;">
-            <label>Photo URL <span style="opacity:.5;font-size:10px;">(optional)</span></label>
-            <input type="text" id="ui-${uid}" value="${u.imageUrl||''}" placeholder="https://..." onchange="updateUserImage('${uid}',this.value)">
+            <label>Pick Avatar Photo</label>
+            <div class="avatar-pick" id="avpick-${uid}">${avatarGrid}</div>
+          </div>
+          <div class="form-group" style="margin-bottom:8px;">
+            <label>Or paste image URL <span style="opacity:.5;font-size:10px;">(overrides above)</span></label>
+            <input type="text" id="ui-${uid}" value="${u.imageUrl&&!AVATAR_IMAGES.includes(u.imageUrl)?u.imageUrl:''}" placeholder="https://..." onchange="updateUserImage('${uid}',this.value)">
           </div>
           <div class="form-group" style="margin-bottom:4px;">
             <label>Color</label>
@@ -713,6 +743,19 @@ function setUserColor(uid, color, el){
   const av = document.getElementById(`u-av-${uid}`);
   if(av) av.style.background=color;
   toast('Color updated!');
+}
+
+function setUserAvatar(uid, path, el){
+  db.ref(`users/${uid}/imageUrl`).set(path);
+  document.querySelectorAll(`#avpick-${uid} .av-opt`).forEach(s=>s.classList.remove('sel'));
+  el.classList.add('sel');
+  // Update preview
+  const av = document.getElementById(`u-av-${uid}`);
+  if(av) av.innerHTML = `<img src="${path}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  // Clear manual URL field
+  const urlInput = document.getElementById(`ui-${uid}`);
+  if(urlInput) urlInput.value='';
+  toast(`${users[uid]?.name}'s photo updated! 📸`);
 }
 
 function adjustTokens(uid){
