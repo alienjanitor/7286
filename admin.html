@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>⚙ Admin — Chore Board</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{--brown:#5C3A1E;--brown-dk:#3D2510;--brown-md:#7A4E2D;--gold:#FFD700;}
+html,body{min-height:100%;background:var(--brown);font-family:'Nunito',sans-serif;color:#fff;}
+
+/* ── AUTH SCREEN ── */
+#auth-screen{
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:20px;padding:30px;
+}
+#auth-screen h1{font-family:'Fredoka One',cursive;font-size:32px;color:var(--gold);text-align:center;}
+#auth-screen p{opacity:.7;text-align:center;font-size:15px;}
+.auth-input{
+  width:100%;max-width:320px;
+  padding:14px 18px;border-radius:14px;border:none;
+  font-size:18px;font-family:'Nunito',sans-serif;font-weight:700;
+  background:rgba(255,255,255,.15);color:#fff;
+  outline:2px solid rgba(255,255,255,.3);
+  text-align:center;letter-spacing:3px;
+}
+.auth-input::placeholder{letter-spacing:0;opacity:.5;}
+.auth-input:focus{outline-color:var(--gold);}
+.auth-err{color:#FF8080;font-size:14px;font-weight:700;min-height:20px;}
+
+/* ── MAIN LAYOUT ── */
+#admin-content{display:none;}
+.adm-hdr{
+  background:var(--brown-dk);
+  padding:14px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+  box-shadow:0 4px 16px rgba(0,0,0,.4);
+}
+.adm-hdr h1{font-family:'Fredoka One',cursive;font-size:22px;color:var(--gold);}
+.adm-hdr a{font-size:12px;color:rgba(255,255,255,.6);text-decoration:none;font-weight:700;}
+.adm-hdr a:hover{color:#fff;}
+
+/* TABS */
+.tabs{
+  display:flex;background:var(--brown-dk);
+  border-bottom:3px solid var(--brown-md);
+  overflow-x:auto;
+}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{
+  flex:1;min-width:80px;
+  padding:12px 6px;text-align:center;
+  font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;
+  cursor:pointer;opacity:.55;
+  border-bottom:3px solid transparent;margin-bottom:-3px;
+  transition:opacity .15s,border-color .15s;white-space:nowrap;
+}
+.tab.on{opacity:1;border-color:var(--gold);color:var(--gold);}
+
+/* PANEL */
+.panel{display:none;padding:16px;max-width:600px;margin:0 auto;}
+.panel.on{display:block;}
+
+/* ── FORM ELEMENTS ── */
+.form-group{margin-bottom:14px;}
+label{display:block;font-size:12px;font-weight:800;text-transform:uppercase;
+      letter-spacing:.5px;opacity:.8;margin-bottom:5px;}
+input[type=text],input[type=number],input[type=password],textarea,select{
+  width:100%;padding:11px 14px;border-radius:12px;border:none;
+  font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;
+  background:rgba(255,255,255,.14);color:#fff;
+  outline:2px solid rgba(255,255,255,.2);
+  transition:outline-color .15s;
+}
+input:focus,textarea:focus,select:focus{outline-color:var(--gold);}
+textarea{resize:vertical;min-height:70px;}
+select option{background:#4a2a10;color:#fff;}
+input::placeholder,textarea::placeholder{opacity:.45;}
+
+.icon-grid{
+  display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin-top:6px;
+}
+.icon-btn{
+  aspect-ratio:1;border-radius:10px;border:2px solid transparent;
+  background:rgba(255,255,255,.1);font-size:22px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;
+}
+.icon-btn.sel{border-color:var(--gold);background:rgba(255,215,0,.2);}
+.icon-btn:hover{background:rgba(255,255,255,.2);}
+
+/* ── BUTTONS ── */
+.btn{
+  padding:13px 20px;border-radius:14px;border:none;
+  font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;
+  cursor:pointer;transition:transform .15s,opacity .15s;
+  display:inline-flex;align-items:center;gap:7px;
+}
+.btn:active{transform:scale(.96);}
+.btn-primary{background:var(--gold);color:var(--brown-dk);width:100%;}
+.btn-success{background:#22C55E;color:#fff;}
+.btn-danger{background:#EF4444;color:#fff;}
+.btn-warn{background:#F59E0B;color:#fff;}
+.btn-ghost{background:rgba(255,255,255,.12);color:#fff;}
+.btn-sm{padding:8px 14px;font-size:13px;border-radius:10px;}
+
+/* ── CARDS (admin list) ── */
+.acard{
+  background:rgba(0,0,0,.25);border-radius:16px;
+  padding:14px;margin-bottom:12px;
+  border-left:5px solid var(--gold);
+}
+.acard-name{font-family:'Fredoka One',cursive;font-size:18px;margin-bottom:4px;}
+.acard-meta{font-size:12px;opacity:.7;margin-bottom:10px;}
+.acard-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.badge{
+  padding:3px 10px;border-radius:10px;font-size:12px;font-weight:800;
+  background:rgba(255,255,255,.15);
+}
+.badge-pend{background:#F59E0B33;color:#F59E0B;border:1px solid #F59E0B55;}
+.badge-conf{background:#22C55E33;color:#22C55E;border:1px solid #22C55E55;}
+.badge-exp {background:#EF444433;color:#EF4444;border:1px solid #EF444455;}
+
+/* assignment rows in pending view */
+.asgn-row{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.08);border-radius:10px;
+  padding:8px 10px;margin-top:8px;flex-wrap:wrap;
+}
+.asgn-av{
+  width:32px;height:32px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:800;overflow:hidden;flex-shrink:0;
+}
+.asgn-av img{width:100%;height:100%;object-fit:cover;}
+.asgn-info{flex:1;font-size:13px;}
+.asgn-tok{font-weight:800;color:var(--gold);}
+
+/* ── USER CARDS ── */
+.ucard{
+  background:rgba(0,0,0,.2);border-radius:14px;padding:14px;margin-bottom:10px;
+  display:grid;grid-template-columns:48px 1fr;gap:12px;align-items:start;
+}
+.u-av{
+  width:48px;height:48px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;font-weight:800;overflow:hidden;
+  border:3px solid rgba(255,255,255,.4);
+}
+.u-av img{width:100%;height:100%;object-fit:cover;}
+.u-name{font-family:'Fredoka One',cursive;font-size:18px;margin-bottom:8px;}
+.u-fields{display:flex;flex-direction:column;gap:8px;}
+.u-fields label{margin-bottom:2px;}
+
+/* color swatch picker */
+.color-swatches{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;}
+.cswatch{
+  width:32px;height:32px;border-radius:50%;cursor:pointer;
+  border:3px solid transparent;transition:transform .15s;
+}
+.cswatch.sel{border-color:#fff;transform:scale(1.15);}
+
+/* ── PAYOUT ── */
+.payout-card{
+  background:rgba(0,0,0,.25);border-radius:14px;padding:12px;margin-bottom:8px;
+  display:flex;align-items:center;gap:10px;
+}
+.pay-av{
+  width:36px;height:36px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:800;overflow:hidden;flex-shrink:0;
+}
+.pay-av img{width:100%;height:100%;object-fit:cover;}
+.pay-info{flex:1;}
+.pay-name{font-weight:800;font-size:15px;}
+.pay-meta{font-size:12px;opacity:.65;}
+.pay-amount{font-weight:900;color:var(--gold);font-size:15px;}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;top:80px;left:50%;transform:translateX(-50%);
+  background:rgba(20,10,5,.9);color:#fff;
+  padding:9px 20px;border-radius:20px;
+  font-size:14px;font-weight:700;z-index:1000;
+  pointer-events:none;transition:opacity .3s;
+  white-space:nowrap;max-width:90vw;text-align:center;
+}
+
+/* ── DIVIDER ── */
+.divider{height:1px;background:rgba(255,255,255,.12);margin:18px 0;}
+.section-title{
+  font-family:'Fredoka One',cursive;font-size:17px;
+  color:var(--gold);margin-bottom:12px;
+}
+.empty{text-align:center;opacity:.4;padding:40px 20px;font-size:15px;}
+</style>
+</head>
+<body>
+
+<!-- ╔══════════════════════════════════╗
+     ║         AUTH SCREEN              ║
+     ╚══════════════════════════════════╝ -->
+<div id="auth-screen">
+  <h1>⚙️ Admin Panel</h1>
+  <p>Enter the admin password to continue</p>
+  <input class="auth-input" id="pw-input" type="password"
+         placeholder="Password" onkeydown="if(event.key==='Enter')doAuth()">
+  <button class="btn btn-primary" style="max-width:320px;width:100%;" onclick="doAuth()">
+    🔓 Enter
+  </button>
+  <div class="auth-err" id="auth-err"></div>
+  <a href="index.html" style="color:rgba(255,255,255,.4);font-size:13px;">← Back to Chore Board</a>
+</div>
+
+<!-- ╔══════════════════════════════════╗
+     ║         ADMIN CONTENT            ║
+     ╚══════════════════════════════════╝ -->
+<div id="admin-content">
+  <div class="adm-hdr">
+    <h1>⚙️ Admin</h1>
+    <a href="index.html">← Chore Board</a>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab on"  onclick="showTab('create')">➕ Create</div>
+    <div class="tab"     onclick="showTab('pending')">⏳ Pending</div>
+    <div class="tab"     onclick="showTab('chores')">📋 All Chores</div>
+    <div class="tab"     onclick="showTab('settings')">⚙️ Settings</div>
+    <div class="tab"     onclick="showTab('payouts')">💵 Payouts</div>
+  </div>
+
+  <!-- ─────────────── TAB: CREATE CHORE ─────────────── -->
+  <div class="panel on" id="tab-create">
+    <div class="section-title">Create New Chore</div>
+
+    <div class="form-group">
+      <label>Chore Name</label>
+      <input type="text" id="c-name" placeholder="e.g. Wash the dishes">
+    </div>
+
+    <div class="form-group">
+      <label>Description</label>
+      <textarea id="c-desc" placeholder="What exactly needs to be done?"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Token Value</label>
+      <input type="number" id="c-tokens" min="1" max="100" value="3" placeholder="3">
+    </div>
+
+    <div class="form-group">
+      <label>Days Available</label>
+      <input type="number" id="c-days" min="1" max="30" value="3" placeholder="3">
+    </div>
+
+    <div class="form-group">
+      <label>Max People (teamwork!)</label>
+      <input type="number" id="c-max" min="1" max="6" value="1" placeholder="1">
+    </div>
+
+    <div class="form-group">
+      <label>Icon (pick one)</label>
+      <div class="icon-grid" id="icon-grid"></div>
+    </div>
+
+    <div class="form-group">
+      <label>Custom Image URL <span style="opacity:.5;font-size:10px;">(optional — overrides icon)</span></label>
+      <input type="text" id="c-img" placeholder="https://... paste an image URL">
+    </div>
+
+    <button class="btn btn-primary" onclick="createChore()" style="margin-top:6px;">
+      ➕ Create Chore
+    </button>
+  </div>
+
+  <!-- ─────────────── TAB: PENDING ACCEPTANCE ─────────────── -->
+  <div class="panel" id="tab-pending">
+    <div class="section-title">Pending Acceptance</div>
+    <div id="pending-list"><div class="empty">Loading...</div></div>
+  </div>
+
+  <!-- ─────────────── TAB: ALL CHORES ─────────────── -->
+  <div class="panel" id="tab-chores">
+    <div class="section-title">All Active Chores</div>
+    <div id="all-chores-list"><div class="empty">Loading...</div></div>
+  </div>
+
+  <!-- ─────────────── TAB: SETTINGS ─────────────── -->
+  <div class="panel" id="tab-settings">
+    <div class="section-title">Token Settings</div>
+
+    <div class="form-group">
+      <label>Token Name <span style="opacity:.5;font-size:10px;">(appears everywhere)</span></label>
+      <input type="text" id="s-token-name" placeholder="Token">
+    </div>
+    <div class="form-group">
+      <label>Tokens per $1</label>
+      <input type="number" id="s-rate" min="1" max="100" placeholder="4">
+    </div>
+    <button class="btn btn-primary" onclick="saveConfig()" style="margin-bottom:20px;">
+      💾 Save Token Settings
+    </button>
+
+    <div class="divider"></div>
+    <div class="section-title">People / Users</div>
+    <div id="user-list"></div>
+  </div>
+
+  <!-- ─────────────── TAB: PAYOUTS ─────────────── -->
+  <div class="panel" id="tab-payouts">
+    <div class="section-title">Record a Payout</div>
+
+    <div class="form-group">
+      <label>Person</label>
+      <select id="pay-user"></select>
+    </div>
+    <div class="form-group">
+      <label>Tokens to Pay Out</label>
+      <input type="number" id="pay-tokens" min="1" placeholder="e.g. 12">
+      <div id="pay-dollar-preview" style="margin-top:5px;font-size:13px;opacity:.65;"></div>
+    </div>
+    <div class="form-group">
+      <label>Note <span style="opacity:.5;font-size:10px;">(optional)</span></label>
+      <input type="text" id="pay-note" placeholder="e.g. June allowance">
+    </div>
+    <button class="btn btn-primary" onclick="recordPayout()" style="margin-bottom:20px;">
+      💵 Record Payout
+    </button>
+
+    <div class="divider"></div>
+    <div class="section-title">Payout History</div>
+    <div id="payout-history"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast" style="opacity:0"></div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+// ═══════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════
+function doAuth(){
+  const pw = document.getElementById('pw-input').value;
+  if(pw === ADMIN_PASSWORD){
+    document.getElementById('auth-screen').style.display='none';
+    document.getElementById('admin-content').style.display='block';
+    initAdmin();
+  } else {
+    document.getElementById('auth-err').textContent='Wrong password. Try again.';
+    document.getElementById('pw-input').value='';
+  }
+}
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let cfg   = { tokenName:'Token', conversionRate:4 };
+let users = {};
+let chores= {};
+let payouts={};
+let selIcon = '✨';
+
+const ICONS = ['✨','🍽️','🧹','🧺','🗑️','🌿','🐕','🛁','🛏️','🪟','🚗','🍳','📦','🧴','💊','🪴','🔧','🪣','🧼','🥗','🌊','🏡','🐱','🐟','🧀','🎒','📚','🔑','🧊','💡','🎮','🛒'];
+const SWATCH_COLORS = ['#FF4E6A','#4ECAFF','#FF9A3C','#A855F7','#22C55E','#F59E0B','#E63946','#2A9D8F','#FF6B6B','#60A5FA','#FB923C','#C084FC'];
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+function initAdmin(){
+  // Firebase listeners
+  db.ref('config').on('value',  s=>{ cfg   =s.val()||cfg;   syncSettingsUI(); renderPayoutUser(); renderPayouts(); });
+  db.ref('users').on('value',   s=>{ users =s.val()||{};    renderUsers(); renderPending(); renderAllChores(); renderPayoutUser(); });
+  db.ref('chores').on('value',  s=>{ chores=s.val()||{};    renderPending(); renderAllChores(); });
+  db.ref('payouts').on('value', s=>{ payouts=s.val()||{};   renderPayouts(); });
+
+  buildIconGrid();
+}
+
+// ═══════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════
+function showTab(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('tab-'+id).classList.add('on');
+  event.currentTarget.classList.add('on');
+}
+
+// ═══════════════════════════════════════════════
+// ICON PICKER
+// ═══════════════════════════════════════════════
+function buildIconGrid(){
+  const g = document.getElementById('icon-grid');
+  g.innerHTML='';
+  ICONS.forEach(ic=>{
+    const b=document.createElement('button');
+    b.className='icon-btn'+(ic===selIcon?' sel':'');
+    b.textContent=ic;
+    b.onclick=()=>{
+      selIcon=ic;
+      document.querySelectorAll('.icon-btn').forEach(x=>x.classList.remove('sel'));
+      b.classList.add('sel');
+    };
+    g.appendChild(b);
+  });
+}
+
+// ═══════════════════════════════════════════════
+// CREATE CHORE
+// ═══════════════════════════════════════════════
+function createChore(){
+  const name  = document.getElementById('c-name').value.trim();
+  const desc  = document.getElementById('c-desc').value.trim();
+  const tokens= parseInt(document.getElementById('c-tokens').value)||3;
+  const days  = parseInt(document.getElementById('c-days').value)||3;
+  const max   = parseInt(document.getElementById('c-max').value)||1;
+  const imgUrl= document.getElementById('c-img').value.trim();
+
+  if(!name){ toast('Give the chore a name! 📝'); return; }
+
+  const chore = {
+    name, description:desc, tokenValue:tokens,
+    daysAvailable:days, maxAssignees:max,
+    icon: selIcon, imageUrl: imgUrl||null,
+    createdAt: Date.now(),
+    status: 'active',
+    assignments: {}
+  };
+
+  db.ref('chores').push(chore).then(()=>{
+    toast('Chore created! 🎉');
+    document.getElementById('c-name').value='';
+    document.getElementById('c-desc').value='';
+    document.getElementById('c-tokens').value='3';
+    document.getElementById('c-days').value='3';
+    document.getElementById('c-max').value='1';
+    document.getElementById('c-img').value='';
+  });
+}
+
+// ═══════════════════════════════════════════════
+// DAYS LEFT HELPER
+// ═══════════════════════════════════════════════
+function daysLeft(c){
+  const exp=(c.createdAt||Date.now())+((c.daysAvailable||1)*86400000);
+  return Math.floor((exp-Date.now())/86400000);
+}
+
+// ═══════════════════════════════════════════════
+// RENDER: PENDING ACCEPTANCE
+// ═══════════════════════════════════════════════
+function renderPending(){
+  const el = document.getElementById('pending-list');
+  const tok = cfg.tokenName||'Token';
+
+  const pendingChores = Object.entries(chores).filter(([,c])=>{
+    const a = c.assignments||{};
+    return Object.values(a).some(x=>x.status==='pending') && c.status!=='accepted';
+  });
+
+  if(!pendingChores.length){
+    el.innerHTML='<div class="empty">No pending assignments yet.<br>Waiting for the kids to do something... 🙄</div>';
+    return;
+  }
+
+  el.innerHTML='';
+  pendingChores.forEach(([cid,c])=>{
+    const a = c.assignments||{};
+    const pendingUIDs = Object.entries(a).filter(([,x])=>x.status==='pending').map(([uid])=>uid);
+    if(!pendingUIDs.length) return;
+
+    const assigneeCount = Object.keys(a).length;
+    const perPerson = Math.ceil((c.tokenValue||1)/assigneeCount);
+
+    const card = document.createElement('div');
+    card.className='acard';
+
+    let asgnHTML = pendingUIDs.map(uid=>{
+      const u=users[uid]; if(!u) return '';
+      return `<div class="asgn-row">
+        <div class="asgn-av" style="background:${u.color||'#888'}">${u.imageUrl?`<img src="${u.imageUrl}">`:`${u.name[0]}`}</div>
+        <div class="asgn-info">
+          <strong>${u.name}</strong>
+          <span class="asgn-tok"> · ${perPerson} ${tok}s</span>
+        </div>
+        <button class="btn btn-success btn-sm" onclick="acceptChore('${cid}')">✅ Accept All</button>
+        <button class="btn btn-danger btn-sm"  onclick="rejectChore('${cid}','${uid}')">✕ Remove</button>
+      </div>`;
+    }).join('');
+
+    card.innerHTML=`
+      <div class="acard-row">
+        <span style="font-size:24px;">${c.icon||'✨'}</span>
+        <div class="acard-name">${c.name}</div>
+        <span class="badge badge-pend">⏳ Pending</span>
+      </div>
+      <div class="acard-meta">${c.tokenValue} ${tok}s total · ${assigneeCount} person${assigneeCount>1?'s':''} · ${perPerson} ${tok}s each</div>
+      ${asgnHTML}`;
+    el.appendChild(card);
+  });
+}
+
+// ═══════════════════════════════════════════════
+// ACCEPT CHORE (award tokens, move to completed)
+// ═══════════════════════════════════════════════
+function acceptChore(cid){
+  const c = chores[cid];
+  if(!c){ toast('Chore not found!'); return; }
+  const a = c.assignments||{};
+  const assigneeCount = Object.keys(a).length;
+  const perPerson = Math.ceil((c.tokenValue||1)/assigneeCount);
+
+  // Update each assigned user's confirmed tokens
+  const updates = {};
+  Object.entries(a).forEach(([uid,info])=>{
+    const cur = users[uid]?.confirmedTokens||0;
+    updates[`users/${uid}/confirmedTokens`] = cur + perPerson;
+    updates[`chores/${cid}/assignments/${uid}/status`] = 'confirmed';
+    updates[`chores/${cid}/assignments/${uid}/tokensAwarded`] = perPerson;
+  });
+
+  // Set chore status to accepted
+  updates[`chores/${cid}/status`] = 'accepted';
+  updates[`chores/${cid}/acceptedAt`] = Date.now();
+
+  // Copy to completed record
+  const completedRecord = {
+    ...c,
+    acceptedAt: Date.now(),
+    status: 'accepted',
+    assignments: {}
+  };
+  Object.entries(a).forEach(([uid,info])=>{
+    completedRecord.assignments[uid] = { ...info, status:'confirmed', tokensAwarded:perPerson };
+  });
+  updates[`completed/${cid}`] = completedRecord;
+
+  db.ref().update(updates).then(()=>{
+    toast(`✅ Accepted! ${perPerson} ${cfg.tokenName||'Token'}s awarded to each person.`);
+  });
+}
+
+// ═══════════════════════════════════════════════
+// REJECT / REMOVE ASSIGNMENT
+// ═══════════════════════════════════════════════
+function rejectChore(cid, uid){
+  if(!confirm(`Remove ${users[uid]?.name}'s claim on this chore?`)) return;
+  db.ref(`chores/${cid}/assignments/${uid}`).remove();
+  toast(`Removed ${users[uid]?.name}'s claim`);
+}
+
+// ═══════════════════════════════════════════════
+// RENDER: ALL CHORES
+// ═══════════════════════════════════════════════
+function renderAllChores(){
+  const el  = document.getElementById('all-chores-list');
+  const tok = cfg.tokenName||'Token';
+
+  const list = Object.entries(chores).sort((a,b)=>(a[1].createdAt||0)-(b[1].createdAt||0));
+
+  if(!list.length){ el.innerHTML='<div class="empty">No chores yet!</div>'; return; }
+
+  el.innerHTML='';
+  list.forEach(([cid,c])=>{
+    const dl = daysLeft(c);
+    const a  = c.assignments||{};
+    const ac = Object.keys(a).length;
+    const statusBadge = c.status==='accepted'
+      ? '<span class="badge badge-conf">✅ Accepted</span>'
+      : ac>0
+        ? '<span class="badge badge-pend">⏳ Claimed</span>'
+        : '<span class="badge">Open</span>';
+    const expiryBadge = dl<0
+      ? '<span class="badge badge-exp">Expired</span>'
+      : '';
+
+    const div = document.createElement('div');
+    div.className='acard';
+    div.style.borderLeftColor = c.status==='accepted' ? '#22C55E' : dl<0 ? '#EF4444' : '#FFD700';
+    div.innerHTML=`
+      <div class="acard-row" style="margin-bottom:6px;">
+        <span style="font-size:20px;">${c.icon||'✨'}</span>
+        <div class="acard-name" style="flex:1">${c.name}</div>
+        ${statusBadge}${expiryBadge}
+      </div>
+      <div class="acard-meta">
+        ${c.tokenValue} ${tok}s · ${c.daysAvailable} day(s) avail ·
+        max ${c.maxAssignees} person${c.maxAssignees>1?'s':''} ·
+        ${dl>=-1?`${dl} days left`:'past expiry'}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        <button class="btn btn-warn btn-sm" onclick="editChorePrompt('${cid}')">✏️ Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteChore('${cid}')">🗑 Delete</button>
+        ${c.status!=='accepted'&&ac>0?`<button class="btn btn-success btn-sm" onclick="acceptChore('${cid}')">✅ Accept</button>`:''}
+      </div>`;
+    el.appendChild(div);
+  });
+}
+
+// ═══════════════════════════════════════════════
+// EDIT CHORE (quick inline prompt)
+// ═══════════════════════════════════════════════
+function editChorePrompt(cid){
+  const c = chores[cid];
+  if(!c) return;
+  const name   = prompt('Chore name:', c.name)||c.name;
+  const desc   = prompt('Description:', c.description||'')||c.description||'';
+  const tokens = parseInt(prompt('Token value:', c.tokenValue)||c.tokenValue);
+  const days   = parseInt(prompt('Days available:', c.daysAvailable)||c.daysAvailable);
+  const max    = parseInt(prompt('Max assignees:', c.maxAssignees||1)||c.maxAssignees||1);
+  db.ref(`chores/${cid}`).update({ name, description:desc, tokenValue:tokens, daysAvailable:days, maxAssignees:max });
+  toast('Chore updated!');
+}
+
+// ═══════════════════════════════════════════════
+// DELETE CHORE
+// ═══════════════════════════════════════════════
+function deleteChore(cid){
+  const c = chores[cid];
+  if(!confirm(`Delete "${c?.name}"? This is permanent.`)) return;
+  db.ref(`chores/${cid}`).remove();
+  toast('Chore deleted');
+}
+
+// ═══════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════
+function syncSettingsUI(){
+  const ti = document.getElementById('s-token-name');
+  const ri = document.getElementById('s-rate');
+  if(ti && !ti.dataset.dirty) ti.value = cfg.tokenName||'Token';
+  if(ri && !ri.dataset.dirty) ri.value = cfg.conversionRate||4;
+}
+
+function saveConfig(){
+  const name = document.getElementById('s-token-name').value.trim()||'Token';
+  const rate = parseInt(document.getElementById('s-rate').value)||4;
+  db.ref('config').update({ tokenName:name, conversionRate:rate });
+  toast('Settings saved! 💾');
+}
+
+// ═══════════════════════════════════════════════
+// RENDER: USER MANAGEMENT
+// ═══════════════════════════════════════════════
+function renderUsers(){
+  const el = document.getElementById('user-list');
+  if(!el) return;
+  el.innerHTML='';
+
+  Object.entries(users).forEach(([uid,u])=>{
+    const div = document.createElement('div');
+    div.className='ucard';
+    div.id=`ucard-${uid}`;
+
+    const swatches = SWATCH_COLORS.map(col=>`
+      <div class="cswatch${(u.color||'#888')===col?' sel':''}"
+           style="background:${col}"
+           onclick="setUserColor('${uid}','${col}',this)"></div>`).join('');
+
+    div.innerHTML=`
+      <div class="u-av" id="u-av-${uid}" style="background:${u.color||'#888'}">
+        ${u.imageUrl?`<img src="${u.imageUrl}" alt="" onerror="this.style.display='none'">`:`${u.name[0]}`}
+      </div>
+      <div>
+        <div class="u-name">${u.name}</div>
+        <div class="u-fields">
+          <div class="form-group" style="margin-bottom:8px;">
+            <label>Display Name</label>
+            <input type="text" id="un-${uid}" value="${u.name}" onchange="updateUserName('${uid}',this.value)">
+          </div>
+          <div class="form-group" style="margin-bottom:8px;">
+            <label>Photo URL <span style="opacity:.5;font-size:10px;">(optional)</span></label>
+            <input type="text" id="ui-${uid}" value="${u.imageUrl||''}" placeholder="https://..." onchange="updateUserImage('${uid}',this.value)">
+          </div>
+          <div class="form-group" style="margin-bottom:4px;">
+            <label>Color</label>
+            <div class="color-swatches">${swatches}</div>
+          </div>
+          <div style="margin-top:8px;font-size:12px;opacity:.65;">
+            ⭐ ${u.confirmedTokens||0} confirmed tokens
+          </div>
+          <button class="btn btn-warn btn-sm" style="margin-top:8px;width:fit-content;"
+            onclick="adjustTokens('${uid}')">✏️ Adjust Tokens</button>
+        </div>
+      </div>`;
+    el.appendChild(div);
+  });
+}
+
+function updateUserName(uid, val){
+  if(!val.trim()) return;
+  db.ref(`users/${uid}/name`).set(val.trim());
+  toast('Name updated!');
+}
+
+function updateUserImage(uid, val){
+  db.ref(`users/${uid}/imageUrl`).set(val.trim()||null);
+  toast('Image updated!');
+}
+
+function setUserColor(uid, color, el){
+  db.ref(`users/${uid}/color`).set(color);
+  document.querySelectorAll(`#ucard-${uid} .cswatch`).forEach(s=>s.classList.remove('sel'));
+  el.classList.add('sel');
+  const av = document.getElementById(`u-av-${uid}`);
+  if(av) av.style.background=color;
+  toast('Color updated!');
+}
+
+function adjustTokens(uid){
+  const cur = users[uid]?.confirmedTokens||0;
+  const n = prompt(`Adjust confirmed tokens for ${users[uid]?.name}\nCurrent: ${cur}\nEnter new total:`, cur);
+  if(n===null) return;
+  const val = parseInt(n);
+  if(isNaN(val)||val<0){ toast('Invalid number'); return; }
+  db.ref(`users/${uid}/confirmedTokens`).set(val);
+  toast(`Tokens set to ${val}`);
+}
+
+// ═══════════════════════════════════════════════
+// PAYOUTS
+// ═══════════════════════════════════════════════
+function renderPayoutUser(){
+  const sel = document.getElementById('pay-user');
+  if(!sel) return;
+  sel.innerHTML='';
+  Object.entries(users).forEach(([uid,u])=>{
+    const opt=document.createElement('option');
+    opt.value=uid; opt.textContent=`${u.name} (${u.confirmedTokens||0} tokens)`;
+    sel.appendChild(opt);
+  });
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const ti = document.getElementById('pay-tokens');
+  if(ti) ti.addEventListener('input',()=>{
+    const n=parseInt(ti.value)||0;
+    const r=cfg.conversionRate||4;
+    document.getElementById('pay-dollar-preview').textContent =
+      n>0 ? `= $${(n/r).toFixed(2)}` : '';
+  });
+});
+
+function recordPayout(){
+  const uid   = document.getElementById('pay-user').value;
+  const tokens= parseInt(document.getElementById('pay-tokens').value)||0;
+  const note  = document.getElementById('pay-note').value.trim();
+  const rate  = cfg.conversionRate||4;
+
+  if(!uid){ toast('Select a person!'); return; }
+  if(tokens<=0){ toast('Enter a valid token amount'); return; }
+
+  const u = users[uid];
+  const cur = u?.confirmedTokens||0;
+  if(tokens > cur){
+    if(!confirm(`${u?.name} only has ${cur} tokens but you're paying out ${tokens}. Continue?`)) return;
+  }
+
+  const payout = {
+    userId:uid,userName:u?.name||uid,
+    tokens, dollars:parseFloat((tokens/rate).toFixed(2)),
+    note:note||null, timestamp:Date.now()
+  };
+
+  db.ref('payouts').push(payout);
+  // Deduct from confirmed tokens
+  db.ref(`users/${uid}/confirmedTokens`).set(Math.max(0, cur-tokens));
+
+  toast(`💵 Paid out ${tokens} tokens ($${payout.dollars}) to ${u?.name}!`);
+  document.getElementById('pay-tokens').value='';
+  document.getElementById('pay-note').value='';
+  document.getElementById('pay-dollar-preview').textContent='';
+}
+
+function renderPayouts(){
+  const el = document.getElementById('payout-history');
+  if(!el) return;
+  const tok = cfg.tokenName||'Token';
+
+  const list = Object.entries(payouts)
+    .sort((a,b)=>(b[1].timestamp||0)-(a[1].timestamp||0))
+    .slice(0,30);
+
+  if(!list.length){
+    el.innerHTML='<div class="empty">No payouts recorded yet.</div>';
+    return;
+  }
+
+  el.innerHTML = list.map(([pid,p])=>{
+    const u = users[p.userId];
+    const d = new Date(p.timestamp).toLocaleDateString();
+    return `<div class="payout-card">
+      <div class="pay-av" style="background:${u?.color||'#888'}">
+        ${u?.imageUrl?`<img src="${u.imageUrl}">`:`${(u?.name||p.userName||'?')[0]}`}
+      </div>
+      <div class="pay-info">
+        <div class="pay-name">${u?.name||p.userName}</div>
+        <div class="pay-meta">${d}${p.note?' · '+p.note:''}</div>
+      </div>
+      <div class="pay-amount">−${p.tokens} = $${p.dollars}</div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════
+let toastTimer;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.opacity='1';
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.style.opacity='0',2800);
+}
+</script>
+</body>
+</html>
